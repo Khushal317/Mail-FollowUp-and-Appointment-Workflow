@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Your Free Solar Site Visit</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.9);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-green-hover: #059669;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            background-image: radial-gradient(circle at top right, #1e1b4b 0%, transparent 40%),
+                              radial-gradient(circle at bottom left, #064e3b 0%, transparent 40%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            padding: 2rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 1rem;
+            padding: 2.5rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.75rem;
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #60a5fa, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        p.subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background-color: rgba(0, 0, 0, 0.2);
+            color: white;
+            font-family: inherit;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .slots-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+        }
+
+        .slot-btn {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .slot-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .slot-btn.selected {
+            background-color: rgba(59, 130, 246, 0.3);
+            border-color: var(--accent-blue);
+            color: #93c5fd;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: none;
+            background-color: var(--accent-green);
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .submit-btn:hover {
+            background-color: var(--accent-green-hover);
+        }
+        
+        .submit-btn:disabled {
+            background-color: #64748b;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .loader {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 2rem 0;
+        }
+
+        .success-state {
+            text-align: center;
+            display: none;
+        }
+
+        .success-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card" id="booking-card">
+        <h1>Solar Site Visit</h1>
+        <p class="subtitle">Select a convenient time for your free property inspection and estimation.</p>
+
+        <div id="slots-loader" class="loader">Loading available times...</div>
+
+        <div id="booking-form" style="display: none;">
+            <div class="form-group">
+                <label>Available Times</label>
+                <div class="slots-container" id="slots-container">
+                    <!-- Slots injected here -->
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="address">Confirm Address</label>
+                <input type="text" id="address" placeholder="123 Solar Way, City, State 12345" required>
+            </div>
+
+            <button class="submit-btn" id="submit-btn" onclick="submitBooking()" disabled>Confirm Booking</button>
+        </div>
+        
+        <div class="success-state" id="success-state">
+            <div class="success-icon">✅</div>
+            <h2 style="margin-top: 0;">Booking Confirmed!</h2>
+            <p style="color: var(--text-muted); line-height: 1.5;">Your site visit is scheduled. We've sent a confirmation email with the details.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    let selectedSlotId = null;
+    
+    // Extract token from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!token) {
+            document.getElementById('slots-loader').innerHTML = 'Invalid or missing booking link.';
+            document.getElementById('slots-loader').style.color = '#ef4444';
+            return;
+        }
+        fetchSlots();
+    });
+
+    // Handle input to enable submit button
+    document.getElementById('address').addEventListener('input', validateForm);
+
+    function validateForm() {
+        const address = document.getElementById('address').value.trim();
+        const submitBtn = document.getElementById('submit-btn');
+        submitBtn.disabled = !(selectedSlotId && address.length > 5);
+    }
+
+    async function fetchSlots() {
+        try {
+            const response = await fetch('/api/appointments/slots');
+            const slots = await response.json();
+            
+            document.getElementById('slots-loader').style.display = 'none';
+            document.getElementById('booking-form').style.display = 'block';
+            
+            renderSlots(slots);
+        } catch (error) {
+            document.getElementById('slots-loader').innerHTML = 'Error loading availability. Please try again later.';
+            document.getElementById('slots-loader').style.color = '#ef4444';
+        }
+    }
+
+    function renderSlots(slots) {
+        const container = document.getElementById('slots-container');
+        container.innerHTML = '';
+        
+        if (slots.length === 0) {
+            container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 1rem;">No times currently available. Please check back later.</div>';
+            return;
+        }
+
+        slots.forEach(slot => {
+            const btn = document.createElement('div');
+            btn.className = 'slot-btn';
+            
+            // Format datetime: e.g. "May 26, 2026 at 10:00 AM"
+            const dateObj = new Date(slot.slot_datetime);
+            const dateStr = dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+            const timeStr = dateObj.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+            
+            btn.textContent = `${dateStr} - ${timeStr}`;
+            
+            btn.onclick = () => {
+                // Remove selected from all
+                document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+                // Select this one
+                btn.classList.add('selected');
+                selectedSlotId = slot.id;
+                validateForm();
+            };
+            
+            container.appendChild(btn);
+        });
+    }
+
+    async function submitBooking() {
+        const address = document.getElementById('address').value.trim();
+        if (!selectedSlotId || !address) return;
+        
+        const submitBtn = document.getElementById('submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Booking...';
+
+        try {
+            const response = await fetch('/api/appointments/book', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    token: token,
+                    slot_id: selectedSlotId,
+                    confirmed_address: address
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                window.location.href = `/static/booking-confirmed.html?token=${token}`;
+            } else {
+                alert(data.detail || 'Failed to book appointment.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Confirm Booking';
+                // Refresh slots in case someone else booked it
+                if (data.detail && data.detail.includes("longer available")) {
+                    selectedSlotId = null;
+                    document.getElementById('slots-container').innerHTML = '<div class="loader">Refreshing...</div>';
+                    fetchSlots();
+                    validateForm();
+                }
+            }
+        } catch (error) {
+            alert('Network error. Please try again.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Confirm Booking';
+        }
+    }
+</script>
+
+</body>
+</html>

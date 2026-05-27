@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Completed Sales - Solar Automation</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            --bg-color: #f8fafc;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --accent-blue: #3b82f6;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 2rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: var(--text-main);
+        }
+
+        .nav-links a {
+            margin-left: 1.5rem;
+            text-decoration: none;
+            color: var(--accent-blue);
+            font-weight: 500;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .list-group {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .rep-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .stats {
+            background-color: #f1f5f9;
+            color: #334155;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Completed Sales 🏆</h1>
+        <div class="nav-links">
+            <a href="/static/index.html">Active Leads</a>
+            <a href="/static/appointments.html">Booked Appointments</a>
+            <a href="/static/completed.html" style="text-decoration: underline;">Completed Sales</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="list-group" id="stats-list">
+            <div class="empty-state">Loading stats...</div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', fetchStats);
+
+        async function fetchStats() {
+            try {
+                const res = await fetch('/api/appointments/stats');
+                const data = await res.json();
+                renderStats(data);
+            } catch (e) {
+                console.error(e);
+                document.getElementById('stats-list').innerHTML = '<div class="empty-state">Error loading stats.</div>';
+            }
+        }
+
+        function renderStats(stats) {
+            const list = document.getElementById('stats-list');
+            
+            if (stats.length === 0) {
+                list.innerHTML = '<div class="empty-state">No completed visits yet.</div>';
+                return;
+            }
+
+            // Sort by count descending
+            stats.sort((a, b) => b.completed_visits - a.completed_visits);
+
+            list.innerHTML = '';
+            
+            stats.forEach(stat => {
+                const item = document.createElement('div');
+                item.className = 'list-item';
+                item.innerHTML = `
+                    <div class="rep-name">${stat.sales_rep}</div>
+                    <div class="stats">${stat.completed_visits} completed visits</div>
+                `;
+                list.appendChild(item);
+            });
+        }
+    </script>
+</body>
+</html>

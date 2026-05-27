@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar Sales Queue</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-purple: #8b5cf6;
+            --accent-yellow: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            background-image: radial-gradient(circle at top right, #1e1b4b 0%, transparent 40%),
+                              radial-gradient(circle at bottom left, #064e3b 0%, transparent 40%);
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            font-weight: 700;
+            font-size: 2.5rem;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .lead-section {
+            margin-bottom: 3rem;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.5rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .badge-high { background-color: rgba(139, 92, 246, 0.2); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.5); }
+        .badge-priority { background-color: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.5); }
+        .badge-standard { background-color: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.5); }
+
+        .leads-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .lead-card {
+            background-color: var(--card-bg);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .lead-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .lead-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .lead-score {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: #6ee7b7;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            font-weight: 700;
+            font-size: 0.875rem;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .info-label {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .info-value {
+            font-weight: 500;
+        }
+
+        .card-actions {
+            margin-top: auto;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 1rem;
+        }
+
+        button {
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .btn-claim {
+            background-color: var(--accent-blue);
+            color: white;
+            flex-grow: 1;
+        }
+
+        .btn-claim:hover { background-color: #2563eb; }
+
+        .btn-complete {
+            background-color: var(--accent-green);
+            color: white;
+            flex-grow: 1;
+        }
+
+        .btn-complete:hover { background-color: #059669; }
+
+        .claimed-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--accent-yellow);
+            font-size: 0.875rem;
+            font-weight: 500;
+            flex-grow: 1;
+        }
+
+        .claimed-badge::before {
+            content: '';
+            display: block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent-yellow);
+        }
+
+        /* Loader */
+        .loader {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        .nav-links a {
+            margin-left: 1.5rem;
+            text-decoration: none;
+            color: var(--accent-blue);
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header style="display: flex; justify-content: space-between; align-items: center; text-align: left;">
+        <div>
+            <h1 style="margin-bottom: 0;">Solar Sales Queue</h1>
+            <p style="color: var(--text-muted); margin-top: 0.5rem;">Live active leads powered by AI scoring.</p>
+        </div>
+        <div class="nav-links">
+            <a href="/static/index.html" style="text-decoration: underline;">Active Leads</a>
+            <a href="/static/appointments.html">Booked Appointments</a>
+            <a href="/static/completed.html">Completed Sales</a>
+        </div>
+    </header>
+
+    <div id="queue-container">
+        <div class="loader">Loading active leads...</div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchLeads();
+        // Auto-refresh every 10 seconds
+        setInterval(fetchLeads, 10000);
+    });
+
+    async function fetchLeads() {
+        try {
+            const response = await fetch('/sales/leads');
+            const leads = await response.json();
+            renderQueue(leads);
+        } catch (error) {
+            console.error("Error fetching leads:", error);
+            document.getElementById('queue-container').innerHTML = 
+                '<div class="loader" style="color: #ef4444">Failed to load leads. Please check connection.</div>';
+        }
+    }
+
+    function renderQueue(leads) {
+        const container = document.getElementById('queue-container');
+        container.innerHTML = '';
+
+        if (leads.length === 0) {
+            container.innerHTML = '<div class="loader">No active leads currently in the queue. 🎉</div>';
+            return;
+        }
+
+        const categories = [
+            { id: 'ENGAGED', title: 'Engaged Leads 🚀', badgeClass: 'badge-high' },
+            { id: 'HIGH_VALUE', title: 'High Value Leads', badgeClass: 'badge-high' },
+            { id: 'PRIORITY', title: 'Priority Leads', badgeClass: 'badge-priority' },
+            { id: 'STANDARD', title: 'Standard Leads', badgeClass: 'badge-standard' }
+        ];
+
+        categories.forEach(cat => {
+            // Note: status is ENGAGED, category is something else.
+            // But since the API returns flat fields, we need to check the nested tracking.lead_status
+            let catLeads;
+            if (cat.id === 'ENGAGED') {
+                catLeads = leads.filter(l => l.tracking && l.tracking.lead_status === 'ENGAGED');
+            } else {
+                catLeads = leads.filter(l => l.lead_category === cat.id && (!l.tracking || (l.tracking.lead_status !== 'ENGAGED' && l.tracking.lead_status !== 'APPOINTMENT_BOOKED' && l.tracking.lead_status !== 'COMPLETED')));
+            }
+            
+            if (catLeads.length > 0) {
+                container.appendChild(createSection(cat, catLeads));
+            }
+        });
+    }
+
+    function createSection(category, leads) {
+        const section = document.createElement('div');
+        section.className = 'lead-section';
+        
+        section.innerHTML = `
+            <div class="section-header">
+                <h2 class="section-title">${category.title}</h2>
+                <span class="badge ${category.badgeClass}">${leads.length} Active</span>
+            </div>
+            <div class="leads-grid" id="grid-${category.id}"></div>
+        `;
+
+        const grid = section.querySelector('.leads-grid');
+        leads.forEach(lead => grid.appendChild(createLeadCard(lead)));
+
+        return section;
+    }
+
+    function createLeadCard(lead) {
+        const card = document.createElement('div');
+        card.className = 'lead-card';
+        card.id = `lead-${lead.id}`;
+
+        let actionHtml = '';
+        if (!lead.assigned_to) {
+            actionHtml = `<button class="btn-claim" onclick="claimLead(${lead.id})">Claim Lead</button>`;
+        } else {
+            actionHtml = `
+                <div class="claimed-badge">Claimed by ${lead.assigned_to}</div>
+                <button class="btn-claim" style="background-color: var(--accent-purple);" onclick="sendBookingLink(${lead.id})">Send Booking Link</button>
+            `;
+        }
+
+        card.innerHTML = `
+            <div class="card-header">
+                <h3 class="lead-name">${lead.full_name}</h3>
+                <div class="lead-score">Score: ${lead.lead_score}</div>
+            </div>
+            
+            ${lead.tracking && lead.tracking.lead_status === 'ENGAGED' ? `
+            <div style="background: rgba(239, 68, 68, 0.1); border-left: 3px solid var(--danger); padding: 0.75rem; border-radius: 0.25rem; font-size: 0.875rem; margin-bottom: 0.5rem;">
+                <strong style="color: var(--danger)">Customer Reply:</strong><br/>
+                <span style="font-style: italic">"${lead.tracking.last_customer_reply || 'No text'}"</span>
+            </div>
+            ` : ''}
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Contact</span>
+                    <span class="info-value">${lead.phone_number}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Location</span>
+                    <span class="info-value">${lead.city}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Property</span>
+                    <span class="info-value">${lead.property_type} (${lead.roof_type})</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Roof Size</span>
+                    <span class="info-value">${lead.rooftop_size}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Monthly Bill</span>
+                    <span class="info-value">${lead.monthly_electricity_bill}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Timeline</span>
+                    <span class="info-value">${lead.installation_timeline}</span>
+                </div>
+            </div>
+
+            <div class="card-actions">
+                ${actionHtml}
+            </div>
+        `;
+
+        return card;
+    }
+
+    async function claimLead(leadId) {
+        const salesPerson = prompt("Enter your name to claim this lead:");
+        if (!salesPerson || salesPerson.trim() === "") return;
+        
+        const salesMobile = prompt("Enter your mobile number:");
+        if (!salesMobile || salesMobile.trim() === "") return;
+
+        try {
+            const response = await fetch(`/sales/leads/${leadId}/claim`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    sales_person: salesPerson.trim(),
+                    sales_person_mobile: salesMobile.trim()
+                })
+            });
+
+            if (response.ok) {
+                // Refresh queue
+                fetchLeads();
+            } else {
+                const data = await response.json();
+                alert(`Failed to claim: ${data.detail}`);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Network error.");
+        }
+    }
+
+    async function sendBookingLink(leadId) {
+        if (!confirm("Generate and send a booking link to this customer?")) return;
+        
+        try {
+            const response = await fetch(`/api/appointments/${leadId}/send-link`, {
+                method: 'POST'
+            });
+            
+            const data = await response.json();
+            if (response.ok) {
+                alert("Booking link generated and emailed to customer.");
+            } else {
+                alert(`Failed to send link: ${data.detail}`);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Network error.");
+        }
+    }
+
+    async function completeLead(leadId) {
+        const salesMobile = prompt("Please enter the mobile number you used to claim this lead:");
+        if (!salesMobile || salesMobile.trim() === "") return;
+
+        if (!confirm("Are you sure you want to mark this lead as completed?")) return;
+
+        try {
+            const response = await fetch(`/sales/leads/${leadId}/complete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sales_person_mobile: salesMobile.trim() })
+            });
+
+            if (response.ok) {
+                // Remove card directly with animation
+                const card = document.getElementById(`lead-${leadId}`);
+                if (card) {
+                    card.style.opacity = '0';
+                    card.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        card.remove();
+                        // Re-fetch to update counts just in case
+                        fetchLeads();
+                    }, 300);
+                }
+            } else {
+                alert("Failed to complete lead.");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Network error.");
+        }
+    }
+</script>
+
+</body>
+</html>

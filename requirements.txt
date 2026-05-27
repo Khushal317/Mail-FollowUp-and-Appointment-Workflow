@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic[email]
+python-dotenv
+httpx
+aiosmtplib
+openai
+psycopg2-binary
+celery[redis]
+redis
