@@ -179,21 +179,28 @@ def get_booked_appointments(db: Session = Depends(get_db)):
 @router.post("/{appointment_id}/complete")
 def complete_appointment(appointment_id: int, request_data: dict, db: Session = Depends(get_db)):
     sales_rep = request_data.get("sales_rep", "System")
+    sales_rep_mobile = request_data.get("sales_rep_mobile")
+    
     appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
     if not appointment or appointment.status != "BOOKED":
         raise HTTPException(status_code=404, detail="Booked appointment not found")
+        
+    lead = db.query(Lead).filter(Lead.id == appointment.lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Associated lead not found")
+        
+    if not lead.claimed_by_mobile or lead.claimed_by_mobile != sales_rep_mobile:
+        raise HTTPException(status_code=403, detail="Verification failed: Mobile number does not match the person who claimed this lead.")
         
     appointment.status = "COMPLETED"
     appointment.completed_by = sales_rep
     appointment.completed_at = datetime.utcnow()
     
-    lead = db.query(Lead).filter(Lead.id == appointment.lead_id).first()
-    if lead:
-        lead.completed = True
-        lead.completed_at = datetime.utcnow()
-        tracking = db.query(LeadTracking).filter(LeadTracking.lead_id == lead.id).first()
-        if tracking:
-            tracking.lead_status = "COMPLETED"
+    lead.completed = True
+    lead.completed_at = datetime.utcnow()
+    tracking = db.query(LeadTracking).filter(LeadTracking.lead_id == lead.id).first()
+    if tracking:
+        tracking.lead_status = "COMPLETED"
             
     db.commit()
     return {"success": True}

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Get Your Free Solar Estimate</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            padding: 2rem;
+        }
+
+        .form-card {
+            background-color: var(--card-bg);
+            border-radius: 1rem;
+            padding: 2.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+            border: 1px solid var(--border-color);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+        }
+
+        .header p {
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-family: inherit;
+            font-size: 1rem;
+            background-color: #fff;
+            box-sizing: border-box;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        .row {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .row .form-group {
+            flex: 1;
+        }
+
+        .submit-btn {
+            width: 100%;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 1rem;
+        }
+
+        .submit-btn:hover {
+            background-color: var(--primary-dark);
+        }
+        
+        .submit-btn:disabled {
+            background-color: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        /* States */
+        #loading-state, #success-state, #error-state {
+            display: none;
+            text-align: center;
+            padding: 2rem 0;
+        }
+
+        .success-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        @media (max-width: 640px) {
+            .row {
+                flex-direction: column;
+                gap: 0;
+            }
+            .form-card {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="form-card">
+        
+        <div id="loading-state">
+            <h2>Submitting your request...</h2>
+            <p style="color: var(--text-muted)">Please wait a moment.</p>
+        </div>
+
+        <div id="success-state">
+            <div class="success-icon">✅</div>
+            <h2>Thanks! Our solar specialist will contact you shortly.</h2>
+        </div>
+
+        <div id="error-state">
+            <div class="success-icon" style="color: #ef4444;">❌</div>
+            <h2 id="error-message">Submission failed.</h2>
+            <button class="submit-btn" onclick="resetForm()">Try Again</button>
+        </div>
+
+        <form id="lead-form">
+            <div class="header">
+                <h1>Go Solar Today</h1>
+                <p>Fill out the form below to get a free site estimation.</p>
+            </div>
+
+            <div class="form-group">
+                <label for="full_name">Full Name *</label>
+                <input type="text" id="full_name" required placeholder="John Doe">
+            </div>
+
+            <div class="row">
+                <div class="form-group">
+                    <label for="phone_number">Phone Number *</label>
+                    <input type="tel" id="phone_number" required placeholder="555-0198">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email Address *</label>
+                    <input type="email" id="email" required placeholder="john@example.com">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="city">City / Location *</label>
+                <input type="text" id="city" required placeholder="Los Angeles, CA">
+            </div>
+
+            <div class="row">
+                <div class="form-group">
+                    <label for="property_type">Property Type *</label>
+                    <select id="property_type" required>
+                        <option value="Residential">Residential</option>
+                        <option value="Commercial">Commercial</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="roof_type">Roof Type</label>
+                    <select id="roof_type">
+                        <option value="Shingle">Shingle</option>
+                        <option value="Tile">Tile</option>
+                        <option value="Metal">Metal</option>
+                        <option value="Flat">Flat</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="form-group">
+                    <label for="monthly_electricity_bill">Avg Monthly Electric Bill ($) *</label>
+                    <input type="number" id="monthly_electricity_bill" required placeholder="150">
+                </div>
+                <div class="form-group">
+                    <label for="rooftop_size">Rooftop Size *</label>
+                    <select id="rooftop_size" required>
+                        <option value="Small">Small</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Large">Large</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="installation_timeline">Installation Timeline *</label>
+                <select id="installation_timeline" required>
+                    <option value="Immediately">Immediately</option>
+                    <option value="Within 30 days">Within 30 days</option>
+                    <option value="Within 60 days">Within 60 days</option>
+                    <option value="Just researching">Just researching</option>
+                </select>
+            </div>
+
+            <button type="submit" id="submitBtn" class="submit-btn">Get Free Estimate</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.getElementById('lead-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const form = document.getElementById('lead-form');
+        const submitBtn = document.getElementById('submitBtn');
+        const loadingState = document.getElementById('loading-state');
+        const successState = document.getElementById('success-state');
+        const errorState = document.getElementById('error-state');
+        const errorMessage = document.getElementById('error-message');
+
+        const payload = {
+            full_name: document.getElementById('full_name').value,
+            phone_number: document.getElementById('phone_number').value,
+            email: document.getElementById('email').value,
+            city: document.getElementById('city').value,
+            property_type: document.getElementById('property_type').value,
+            monthly_electricity_bill: document.getElementById('monthly_electricity_bill').value,
+            roof_type: document.getElementById('roof_type').value,
+            rooftop_size: document.getElementById('rooftop_size').value,
+            installation_timeline: document.getElementById('installation_timeline').value
+        };
+
+        form.style.display = 'none';
+        loadingState.style.display = 'block';
+
+        try {
+            const response = await fetch('/submit-lead', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+            
+            loadingState.style.display = 'none';
+
+            if (response.ok) {
+                successState.style.display = 'block';
+            } else {
+                errorState.style.display = 'block';
+                errorMessage.innerText = data.detail || 'Submission failed. Please try again.';
+            }
+        } catch (error) {
+            loadingState.style.display = 'none';
+            errorState.style.display = 'block';
+            errorMessage.innerText = 'Network error. Please check your connection and try again.';
+        }
+    });
+
+    function resetForm() {
+        document.getElementById('error-state').style.display = 'none';
+        document.getElementById('lead-form').style.display = 'block';
+        document.getElementById('submitBtn').disabled = false;
+    }
+</script>
+
+</body>
+</html>

@@ -318,7 +318,10 @@
         } else {
             actionHtml = `
                 <div class="claimed-badge">Claimed by ${lead.assigned_to}</div>
-                <button class="btn-claim" style="background-color: var(--accent-purple);" onclick="sendBookingLink(${lead.id})">Send Booking Link</button>
+                <div style="display: flex; gap: 0.5rem; width: 100%;">
+                    <button class="btn-claim" style="background-color: var(--accent-purple);" onclick="sendBookingLink(${lead.id})">Send Booking Link</button>
+                    <button class="btn-complete" onclick="completeLead(${lead.id})">Mark Completed</button>
+                </div>
             `;
         }
 
