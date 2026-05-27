@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+import os
 import string
 import random
 from datetime import datetime
@@ -48,7 +49,8 @@ def send_booking_link(lead_id: int, db: Session = Depends(get_db)):
         token = appointment.booking_token
 
     # Queue booking email
-    booking_url = f"http://localhost:8000/static/book.html?token={token}"
+    base_url = os.getenv("PUBLIC_BASE_URL", "http://localhost:8000")
+    booking_url = f"{base_url}/static/book.html?token={token}"
     email_body = f"Hi {lead.full_name},\n\nPlease select a convenient time for your free solar site visit by clicking the link below:\n\n{booking_url}\n\nBest,\nYour Solar Team"
     
     email_job = EmailJob(
