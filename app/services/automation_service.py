@@ -8,9 +8,10 @@ from app.database.database import SessionLocal
 from app.models.lead import Lead, LeadTracking, EmailJob
 from app.services.email_service import send_email_async
 from app.services.ai_service import generate_auto_reply
+from app.services.business_service import get_follow_up_body, get_follow_up_subject
 from app.utils.logger import logger
 
-SMTP_EMAIL = os.getenv("SMTP_EMAIL")
+SMTP_EMAIL = os.getenv("SMTP_USER") or os.getenv("SMTP_EMAIL")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 
 async def follow_up_cron():
@@ -40,15 +41,15 @@ async def follow_up_cron():
                 if minutes_since_created >= 1 and stage < 1:
                     should_send = True
                     new_stage = 1
-                    template = f"Hi {lead.full_name}, just checking if you're still interested in reducing your electricity bill with solar."
+                    template = get_follow_up_body(lead, new_stage)
                 elif minutes_since_created >= 3 and stage < 2:
                     should_send = True
                     new_stage = 2
-                    template = f"Hi {lead.full_name}, we can provide a free estimate for your property if you'd like."
+                    template = get_follow_up_body(lead, new_stage)
                 elif minutes_since_created >= 7 and stage < 3:
                     should_send = True
                     new_stage = 3
-                    template = f"Hi {lead.full_name}, solar subsidy availability may change soon in your area. Let us know if you have any questions!"
+                    template = get_follow_up_body(lead, new_stage)
 
                 if should_send:
                     logger.info(f"Queueing follow-up {new_stage} to lead {lead.id}")
@@ -56,7 +57,7 @@ async def follow_up_cron():
                         lead_id=lead.id,
                         email_type=f"FOLLOW_UP_{new_stage}",
                         recipient_email=lead.email,
-                        subject="Checking in - Solar Installation",
+                        subject=get_follow_up_subject(lead.business_type),
                         body=template
                     )
                     db.add(email_job)
@@ -74,7 +75,7 @@ def _sync_imap_poll():
     import socket
     socket.setdefaulttimeout(15)  # 15-second timeout for all socket operations
     
-    matched_leads = []  # collect (lead_id, sender, preview) tuples
+    matched_leads = []  # collect (lead_id, sender, preview, business_type) tuples
     
     mail = imaplib.IMAP4_SSL("imap.gmail.com", timeout=15)
     mail.login(SMTP_EMAIL, SMTP_PASSWORD)
@@ -120,13 +121,21 @@ def _sync_imap_poll():
                     ).first()
                     
                     if lead:
+                        existing_auto_reply = db.query(EmailJob).filter(
+                            EmailJob.lead_id == lead.id,
+                            EmailJob.email_type == "AUTO_REPLY",
+                        ).first()
                         logger.info(f"Reply detected from lead {lead.id}: {sender}")
                         lead.tracking.lead_status = "ENGAGED"
+                        lead.lead_status = "ENGAGED"
                         lead.tracking.follow_up_stopped = True
                         lead.tracking.last_customer_reply = preview
                         lead.tracking.last_reply_at = datetime.utcnow()
                         db.commit()
-                        matched_leads.append((lead.id, lead.email, preview))
+                        if existing_auto_reply:
+                            logger.info(f"Auto-reply already exists for lead {lead.id}; skipping duplicate.")
+                        else:
+                            matched_leads.append((lead.id, lead.email, preview, lead.business_type))
 
         db.close()
     mail.logout()
@@ -154,14 +163,21 @@ async def imap_polling_cron():
             # Queue auto-replies back on the async event loop
             if matched_leads:
                 db = SessionLocal()
-                for lead_id, lead_email, preview in matched_leads:
+                for lead_id, lead_email, preview, business_type in matched_leads:
                     try:
-                        auto_reply = await generate_auto_reply(preview)
+                        existing_auto_reply = db.query(EmailJob).filter(
+                            EmailJob.lead_id == lead_id,
+                            EmailJob.email_type == "AUTO_REPLY",
+                        ).first()
+                        if existing_auto_reply:
+                            logger.info(f"Auto-reply already exists for lead {lead_id}; skipping duplicate.")
+                            continue
+                        auto_reply = await generate_auto_reply(preview, business_type)
                         email_job = EmailJob(
                             lead_id=lead_id,
                             email_type="AUTO_REPLY",
                             recipient_email=lead_email,
-                            subject="Re: Your Solar Inquiry",
+                            subject="Re: Your Inquiry",
                             body=auto_reply
                         )
                         db.add(email_job)

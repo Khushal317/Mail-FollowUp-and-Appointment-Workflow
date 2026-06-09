@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choose Demo Business Type</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f5f7fb;
+            color: #172033;
+        }
+        .page {
+            width: 100%;
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 38px 18px;
+        }
+        a { color: inherit; }
+        .back {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 700;
+            display: inline-block;
+            margin-bottom: 28px;
+        }
+        h1 {
+            font-size: clamp(32px, 6vw, 52px);
+            margin: 0 0 10px;
+            letter-spacing: 0;
+        }
+        .intro {
+            color: #66758a;
+            line-height: 1.6;
+            max-width: 660px;
+            margin: 0 0 28px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+        }
+        .card {
+            display: flex;
+            flex-direction: column;
+            min-height: 210px;
+            padding: 22px;
+            background: #fff;
+            border: 1px solid #dce3ee;
+            border-radius: 8px;
+            text-decoration: none;
+            box-shadow: 0 10px 28px rgba(33, 45, 70, 0.06);
+        }
+        .card:hover {
+            border-color: #2563eb;
+            box-shadow: 0 14px 34px rgba(33, 45, 70, 0.1);
+        }
+        .label {
+            width: 42px;
+            height: 42px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: #e8f0ff;
+            color: #174ebd;
+            font-weight: 800;
+            margin-bottom: 18px;
+        }
+        h2 { margin: 0 0 10px; font-size: 22px; }
+        p { margin: 0; color: #66758a; line-height: 1.5; }
+        .open { margin-top: auto; color: #2563eb; font-weight: 700; padding-top: 18px; }
+        @media (max-width: 760px) {
+            .grid { grid-template-columns: 1fr; }
+            .card { min-height: 160px; }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <a class="back" href="/">Back to landing</a>
+        <h1>Choose a Demo Business Type</h1>
+        <p class="intro">Pick a workflow example. Each form simulates a new customer lead and starts the same reply, follow-up, queue, and booking automation.</p>
+
+        <section class="grid" aria-label="Business type choices">
+            <a class="card" href="/demo/solar">
+                <span class="label">S</span>
+                <h2>Solar Company</h2>
+                <p>Simulate a homeowner or commercial buyer asking about solar savings and a consultation.</p>
+                <span class="open">Open form</span>
+            </a>
+            <a class="card" href="/demo/home-services">
+                <span class="label">H</span>
+                <h2>Home Services</h2>
+                <p>Simulate a customer asking for help with a repair, service visit, or urgent request.</p>
+                <span class="open">Open form</span>
+            </a>
+            <a class="card" href="/demo/other-business">
+                <span class="label">O</span>
+                <h2>Other Business</h2>
+                <p>Simulate a business owner asking to automate lead follow-up or another workflow.</p>
+                <span class="open">Open form</span>
+            </a>
+        </section>
+    </main>
+    <script src="/static/demo-auth.js"></script>
+    <script>
+        window.demoAuth.requireLogin();
+    </script>
+    <script src="/static/contact-banner.js"></script>
+</body>
+</html>

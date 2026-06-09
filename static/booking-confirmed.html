@@ -3,161 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Booking Confirmed - Solar Site Visit</title>
+    <title>Booking Confirmed</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-
-        :root {
-            --bg-color: #0f172a;
-            --card-bg: rgba(30, 41, 59, 0.9);
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent-green: #10b981;
-        }
-
+        * { box-sizing: border-box; }
         body {
             margin: 0;
-            padding: 0;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif;
-            background-image: radial-gradient(circle at top right, #1e1b4b 0%, transparent 40%),
-                              radial-gradient(circle at bottom left, #064e3b 0%, transparent 40%);
-            background-attachment: fixed;
             min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f5f7fb;
+            color: #172033;
         }
-
-        .container {
+        .panel {
             width: 100%;
-            max-width: 500px;
-            padding: 2rem;
-        }
-
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 1rem;
-            padding: 3rem 2rem;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            max-width: 560px;
+            background: #fff;
+            border: 1px solid #dce3ee;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 14px 34px rgba(33, 45, 70, 0.07);
             text-align: center;
         }
-
-        .success-icon {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-            color: var(--accent-green);
+        .mark {
+            width: 54px;
+            height: 54px;
+            margin: 0 auto 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: #e7f8ef;
+            color: #087443;
+            font-weight: 900;
         }
-
-        h1 {
-            font-size: 1.75rem;
-            margin-top: 0;
-            margin-bottom: 0.5rem;
-            color: #fff;
-        }
-        
-        p.subtitle {
-            color: var(--text-muted);
-            margin-bottom: 2rem;
-            line-height: 1.5;
-        }
-
-        .details-box {
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 0.5rem;
-            padding: 1.5rem;
+        h1 { margin: 0 0 8px; font-size: 30px; letter-spacing: 0; }
+        .intro { color: #66758a; line-height: 1.55; margin: 0 0 22px; }
+        .details {
             text-align: left;
-            margin-bottom: 2rem;
+            background: #f8fafc;
+            border: 1px solid #e1e8f2;
+            border-radius: 8px;
+            padding: 16px;
         }
-
-        .details-row {
-            margin-bottom: 1rem;
-        }
-
-        .details-row:last-child {
-            margin-bottom: 0;
-        }
-
-        .details-label {
+        .label {
             display: block;
-            font-size: 0.8rem;
+            color: #66758a;
+            font-size: 12px;
+            font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-muted);
-            margin-bottom: 0.25rem;
+            margin-bottom: 4px;
         }
-
-        .details-value {
-            font-weight: 600;
-            font-size: 1.1rem;
-        }
-
-        .loader {
-            color: var(--text-muted);
-        }
+        .value { display: block; font-weight: 800; margin-bottom: 14px; }
+        .value:last-child { margin-bottom: 0; }
+        .loader { color: #66758a; }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <div class="card" id="card">
+    <main class="panel">
         <div id="loader" class="loader">Verifying booking details...</div>
-        
-        <div id="content" style="display: none;">
-            <div class="success-icon">✅</div>
-            <h1>Your free solar site visit has been scheduled successfully.</h1>
-            <p class="subtitle">We've sent a confirmation email with all the details. Our team will see you soon!</p>
-            
-            <div class="details-box">
-                <div class="details-row">
-                    <span class="details-label">Date & Time</span>
-                    <span class="details-value" id="dt-value">...</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Confirmed Address</span>
-                    <span class="details-value" id="addr-value">...</span>
-                </div>
+        <section id="content" style="display: none;">
+            <div class="mark">OK</div>
+            <h1>Booking confirmed.</h1>
+            <p class="intro">A confirmation email has been queued with the appointment details.</p>
+            <div class="details">
+                <span class="label">Date and time</span>
+                <span class="value" id="dt-value"></span>
+                <span class="label">Confirmed address</span>
+                <span class="value" id="addr-value"></span>
             </div>
-        </div>
-    </div>
-</div>
+        </section>
+    </main>
 
-<script>
-    document.addEventListener('DOMContentLoaded', async () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get('token');
-        
-        if (!token) {
-            document.getElementById('loader').innerText = "Invalid link.";
-            return;
-        }
-        
-        try {
-            const res = await fetch(`/api/appointments/confirmation/${token}`);
-            if (res.ok) {
-                const data = await res.json();
-                
-                const dateObj = new Date(data.date_time);
-                const dateStr = dateObj.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-                const timeStr = dateObj.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-                
-                document.getElementById('dt-value').innerText = `${dateStr} at ${timeStr}`;
-                document.getElementById('addr-value').innerText = data.address;
-                
-                document.getElementById('loader').style.display = 'none';
-                document.getElementById('content').style.display = 'block';
-            } else {
-                document.getElementById('loader').innerText = "Booking not found or not confirmed.";
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const token = new URLSearchParams(window.location.search).get("token");
+            if (!token) {
+                document.getElementById("loader").textContent = "Invalid link.";
+                return;
             }
-        } catch (e) {
-            document.getElementById('loader').innerText = "Network error loading details.";
-        }
-    });
-</script>
 
+            try {
+                const res = await fetch(`/api/appointments/confirmation/${token}`);
+                if (!res.ok) {
+                    document.getElementById("loader").textContent = "Booking not found or not confirmed.";
+                    return;
+                }
+
+                const data = await res.json();
+                const dateObj = new Date(data.date_time);
+                const dateStr = dateObj.toLocaleDateString(undefined, {
+                    weekday: "long",
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric"
+                });
+                const timeStr = dateObj.toLocaleTimeString(undefined, {
+                    hour: "numeric",
+                    minute: "2-digit"
+                });
+
+                document.getElementById("dt-value").textContent = `${dateStr} at ${timeStr}`;
+                document.getElementById("addr-value").textContent = data.address;
+                document.getElementById("loader").style.display = "none";
+                document.getElementById("content").style.display = "block";
+            } catch (error) {
+                document.getElementById("loader").textContent = "Network error loading details.";
+            }
+        });
+    </script>
+    <script src="/static/contact-banner.js"></script>
 </body>
 </html>

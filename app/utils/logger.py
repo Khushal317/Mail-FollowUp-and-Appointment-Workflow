@@ -16,4 +16,4 @@ def get_logger(name: str):
         
     return logger
 
-logger = get_logger("solar_app")
+logger = get_logger("lead_demo_app")

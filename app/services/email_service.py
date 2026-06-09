@@ -3,7 +3,9 @@ import smtplib
 from email.message import EmailMessage
 from app.utils.logger import logger
 
-SMTP_EMAIL = os.getenv("SMTP_EMAIL")
+SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_EMAIL = os.getenv("SMTP_USER") or os.getenv("SMTP_EMAIL")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 
 
@@ -20,7 +22,7 @@ def send_email_sync(to_email: str, subject: str, content: str) -> bool:
     message.set_content(content)
 
     try:
-        with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as server:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as server:
             server.ehlo()
             server.starttls()
             server.ehlo()
@@ -33,17 +35,18 @@ def send_email_sync(to_email: str, subject: str, content: str) -> bool:
         return False
 
 
+async def send_email_async(to_email: str, subject: str, content: str) -> bool:
+    return send_email_sync(to_email, subject, content)
+
+
 def get_fallback_email(full_name: str) -> str:
     return f"""Hi {full_name},
 
-Thanks for your interest in going solar! We have received your inquiry and our team is currently reviewing your details. 
+Thanks for your inquiry. We have received your details and our team is currently reviewing them.
 
-To help us prepare the best proposal for you, could you please let us know:
-- Your approximate rooftop size
-- Your average daytime electricity usage
-- Your preferred installation timeline
+Someone will follow up soon with the next practical step.
 
-We look forward to speaking with you soon and helping you save on your electricity bills.
+We look forward to speaking with you soon.
 
 Best regards,
-The Solar Team"""
+The Team"""

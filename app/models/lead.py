@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database.database import Base
@@ -10,17 +10,21 @@ class Lead(Base):
     full_name = Column(String, index=True)
     phone_number = Column(String)
     email = Column(String, index=True)
+    business_type = Column(String, default="SOLAR", index=True)
     city = Column(String)
     property_type = Column(String)
     monthly_electricity_bill = Column(String)
     roof_type = Column(String)
     rooftop_size = Column(String)
     installation_timeline = Column(String)
+    extra_fields = Column(JSON, default=dict)
     ai_generated_email = Column(String, nullable=True)
     
     # Scoring and Queue Fields
     lead_category = Column(String, index=True) # HIGH_VALUE, PRIORITY, STANDARD
     lead_score = Column(Integer, index=True)
+    lead_status = Column(String, default="NURTURING", index=True)
+    appointment_status = Column(String, default="NOT_SENT", index=True)
     assigned_to = Column(String, nullable=True)
     claimed_by_mobile = Column(String, nullable=True)
     claimed_at = Column(DateTime, nullable=True)

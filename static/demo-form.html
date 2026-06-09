@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo Lead Form</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f5f7fb;
+            color: #172033;
+        }
+        .page {
+            width: 100%;
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 34px 18px;
+        }
+        .back {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 700;
+            display: inline-block;
+            margin-bottom: 22px;
+        }
+        .panel {
+            background: #fff;
+            border: 1px solid #dce3ee;
+            border-radius: 8px;
+            padding: 26px;
+            box-shadow: 0 14px 34px rgba(33, 45, 70, 0.07);
+        }
+        h1 { margin: 0 0 8px; font-size: 32px; letter-spacing: 0; }
+        .intro { color: #66758a; line-height: 1.55; margin: 0 0 24px; }
+        form { display: grid; gap: 16px; }
+        .row {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+        label {
+            display: block;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 7px;
+        }
+        input, select, textarea {
+            width: 100%;
+            border: 1px solid #cfd8e5;
+            border-radius: 8px;
+            padding: 12px;
+            font: inherit;
+            background: #fff;
+            color: #172033;
+        }
+        textarea { min-height: 104px; resize: vertical; }
+        input:focus, select:focus, textarea:focus {
+            outline: 3px solid #dbe8ff;
+            border-color: #2563eb;
+        }
+        button {
+            min-height: 48px;
+            border: 0;
+            border-radius: 8px;
+            padding: 0 18px;
+            background: #2563eb;
+            color: #fff;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        button:disabled { background: #7d8da3; cursor: wait; }
+        .notice {
+            background: #f8fafc;
+            border: 1px solid #dce3ee;
+            border-radius: 8px;
+            color: #526071;
+            line-height: 1.5;
+            padding: 12px;
+            margin-bottom: 20px;
+        }
+        .error {
+            display: none;
+            color: #b42318;
+            background: #fff1f0;
+            border: 1px solid #ffd6d2;
+            border-radius: 8px;
+            padding: 12px;
+            line-height: 1.4;
+        }
+        @media (max-width: 620px) {
+            .panel { padding: 20px; }
+            .row { grid-template-columns: 1fr; gap: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <a class="back" href="/demo">Back to business types</a>
+        <section class="panel">
+            <h1 id="form-title">Demo Lead Form</h1>
+            <p class="intro" id="form-intro">This simulates a new customer lead entering the automation.</p>
+            <div class="notice">Demo emails are sent from aiinfluencergo@gmail.com. Use a real email address in the form if you want to receive and test the replies.</div>
+            <div class="notice">This form is only one simple way to collect lead details. Leads can also come from your website, ads, chat, WhatsApp, or other sources.</div>
+            <div class="notice">For this demo we are showing email automation. WhatsApp automation can also be added for your business.</div>
+            <form id="lead-form">
+                <div class="row">
+                    <div>
+                        <label for="full_name">Name</label>
+                        <input id="full_name" name="full_name" type="text" autocomplete="name" required>
+                    </div>
+                    <div>
+                        <label for="email">Email</label>
+                        <input id="email" name="email" type="email" autocomplete="email" required>
+                    </div>
+                </div>
+                <div>
+                    <label for="phone_number">Phone</label>
+                    <input id="phone_number" name="phone_number" type="tel" autocomplete="tel" required>
+                </div>
+                <div id="dynamic-fields"></div>
+                <div class="error" id="error-box"></div>
+                <button id="submit-btn" type="submit">Start Automation</button>
+            </form>
+        </section>
+    </main>
+
+    <script src="/static/demo-auth.js"></script>
+    <script>
+        const configs = {
+            "solar": {
+                business_type: "SOLAR",
+                title: "Solar Company Demo",
+                intro: "This simulates a solar lead. After submission, the system queues an instant reply and follow-ups.",
+                fields: [
+                    { id: "monthly_electricity_bill", label: "Monthly Electricity Bill", type: "number", placeholder: "12000" },
+                    { id: "property_type", label: "Property Type", type: "select", options: ["Residential", "Commercial"] },
+                    { id: "city", label: "City", type: "text", placeholder: "Jaipur" }
+                ]
+            },
+            "home-services": {
+                business_type: "HOME_SERVICES",
+                title: "Home Services Demo",
+                intro: "This simulates a service request. The automation replies, follows up, and places the lead in the team queue.",
+                fields: [
+                    { id: "service_needed", label: "Service Needed", type: "text", placeholder: "AC Repair" },
+                    { id: "urgency", label: "Urgency", type: "select", options: ["Emergency", "Urgent", "This week", "Flexible"] },
+                    { id: "address", label: "Address", type: "text", placeholder: "House number, street, city" }
+                ]
+            },
+            "other-business": {
+                business_type: "OTHER_BUSINESS",
+                title: "Other Business Demo",
+                intro: "This simulates a business owner asking how automation could handle a workflow.",
+                fields: [
+                    { id: "business_type_text", label: "Business Type", type: "text", placeholder: "Dental Clinic" },
+                    { id: "automation_goal", label: "What Do You Want To Automate?", type: "textarea", placeholder: "Follow up with new leads and remind them to book a consultation." }
+                ]
+            }
+        };
+
+        const login = window.demoAuth.requireLogin();
+        const slug = window.location.pathname.split("/").filter(Boolean).pop();
+        const config = configs[slug] || configs.solar;
+        const dynamicFields = document.getElementById("dynamic-fields");
+        const demoSessionId = login ? login.id : "";
+
+        document.title = config.title;
+        document.getElementById("form-title").textContent = config.title;
+        document.getElementById("form-intro").textContent = config.intro;
+        dynamicFields.innerHTML = config.fields.map(renderField).join("");
+
+        function renderField(field) {
+            if (field.type === "select") {
+                return `
+                    <div style="margin-bottom: 16px;">
+                        <label for="${field.id}">${field.label}</label>
+                        <select id="${field.id}" name="${field.id}" required>
+                            ${field.options.map(option => `<option value="${option}">${option}</option>`).join("")}
+                        </select>
+                    </div>`;
+            }
+            if (field.type === "textarea") {
+                return `
+                    <div style="margin-bottom: 16px;">
+                        <label for="${field.id}">${field.label}</label>
+                        <textarea id="${field.id}" name="${field.id}" required placeholder="${field.placeholder || ""}"></textarea>
+                    </div>`;
+            }
+            return `
+                <div style="margin-bottom: 16px;">
+                    <label for="${field.id}">${field.label}</label>
+                    <input id="${field.id}" name="${field.id}" type="${field.type}" required placeholder="${field.placeholder || ""}">
+                </div>`;
+        }
+
+        document.getElementById("lead-form").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const submitBtn = document.getElementById("submit-btn");
+            const errorBox = document.getElementById("error-box");
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Starting...";
+            errorBox.style.display = "none";
+
+            const payload = {
+                full_name: value("full_name"),
+                email: value("email"),
+                phone_number: value("phone_number"),
+                business_type: config.business_type,
+                extra_fields: { demo_session_id: demoSessionId }
+            };
+
+            config.fields.forEach(field => {
+                const fieldValue = value(field.id);
+                payload.extra_fields[field.id] = fieldValue;
+                if (config.business_type === "SOLAR") {
+                    payload[field.id] = fieldValue;
+                }
+            });
+
+            try {
+                const response = await fetch("/submit-lead", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    rememberLead(data.lead_id);
+                    window.location.href = "/confirmation";
+                    return;
+                }
+
+                const data = await response.json();
+                throw new Error(data.detail || "Submission failed. Please try again.");
+            } catch (error) {
+                errorBox.textContent = error.message || "Network error. Please try again.";
+                errorBox.style.display = "block";
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Start Automation";
+            }
+        });
+
+        function value(id) {
+            return document.getElementById(id).value.trim();
+        }
+
+        function rememberLead(leadId) {
+            if (!leadId) return;
+            const key = `demo_lead_ids_${demoSessionId}`;
+            const current = JSON.parse(localStorage.getItem(key) || "[]");
+            if (!current.includes(leadId)) {
+                current.push(leadId);
+            }
+            localStorage.setItem(key, JSON.stringify(current.slice(-50)));
+        }
+
+    </script>
+    <script src="/static/contact-banner.js"></script>
+</body>
+</html>

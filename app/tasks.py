@@ -2,16 +2,18 @@ import os
 import smtplib
 import imaplib
 import email
-from email.message import EmailMessage
-from datetime import datetime
+from email.utils import parseaddr
+from datetime import datetime, timedelta
 from celery_app import celery
 from app.database.database import SessionLocal
 from app.models.lead import Lead, LeadTracking, EmailJob
-from app.services.email_service import send_email_sync, get_fallback_email
-from app.services.ai_service import generate_email_sync, generate_auto_reply_sync
+from app.services.email_service import send_email_sync
+from app.services.ai_service import generate_email_sync
+from app.services.business_service import get_auto_reply_fallback, get_follow_up_body, get_follow_up_subject
+from app.services.task_dispatcher import dispatch_task, redis_broker_available
 from app.utils.logger import logger
 
-SMTP_EMAIL = os.getenv("SMTP_EMAIL")
+SMTP_EMAIL = os.getenv("SMTP_USER") or os.getenv("SMTP_EMAIL")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 
 
@@ -39,6 +41,7 @@ def send_email_task(self, job_id: int):
         if success:
             job.status = "SUCCESS"
             job.processed_at = datetime.utcnow()
+            job.last_error = None
             
             # Record exact sent time if this is a follow-up
             if job.email_type.startswith("FOLLOW_UP_"):
@@ -96,8 +99,11 @@ def process_email_queue():
             # Mark as PROCESSING immediately to prevent duplicate pickup
             job.status = "PROCESSING"
             db.commit()
-            # Dispatch to worker
-            send_email_task.delay(job.id)
+
+            if redis_broker_available():
+                dispatch_task(send_email_task, job.id, logger=logger, description=f"Email job {job.id}")
+            else:
+                send_email_task(job.id)
 
     except Exception as e:
         logger.error(f"Error in process_email_queue: {e}")
@@ -134,7 +140,7 @@ def check_follow_ups():
                 logger.info(f"Lead {lead.id} eligible for FU_1. Scheduled at: {tracking.follow_up_1_scheduled_at}")
                 should_send = True
                 new_stage = 1
-                template = f"Hi {lead.full_name}, just checking if you're still interested in reducing your electricity bill with solar."
+                template = get_follow_up_body(lead, new_stage)
             
             # Check for Stage 2
             elif stage == 1 and tracking.follow_up_2_scheduled_at and now >= tracking.follow_up_2_scheduled_at:
@@ -142,7 +148,7 @@ def check_follow_ups():
                     logger.info(f"Lead {lead.id} eligible for FU_2. Scheduled at: {tracking.follow_up_2_scheduled_at}. Spacing validated.")
                     should_send = True
                     new_stage = 2
-                    template = f"Hi {lead.full_name}, we can provide a free estimate for your property if you'd like."
+                    template = get_follow_up_body(lead, new_stage)
                 else:
                     logger.warning(f"Lead {lead.id} eligible for FU_2 but blocked by spacing rule. Rescheduling slightly later.")
                     
@@ -152,7 +158,7 @@ def check_follow_ups():
                     logger.info(f"Lead {lead.id} eligible for FU_3. Scheduled at: {tracking.follow_up_3_scheduled_at}. Spacing validated.")
                     should_send = True
                     new_stage = 3
-                    template = f"Hi {lead.full_name}, solar subsidy availability may change soon in your area. Let us know if you have any questions!"
+                    template = get_follow_up_body(lead, new_stage)
                 else:
                     logger.warning(f"Lead {lead.id} eligible for FU_3 but blocked by spacing rule. Rescheduling slightly later.")
 
@@ -168,15 +174,14 @@ def check_follow_ups():
                     lead_id=lead.id,
                     email_type=f"FOLLOW_UP_{new_stage}",
                     recipient_email=lead.email,
-                    subject="Checking in - Solar Installation",
+                    subject=get_follow_up_subject(lead.business_type),
                     body=template
                 )
                 db.add(email_job)
                 fresh_tracking.follow_up_stage = new_stage
                 db.commit()
 
-                # Immediately dispatch to worker
-                send_email_task.delay(email_job.id)
+                dispatch_task(send_email_task, email_job.id, logger=logger, description=f"Follow-up email job {email_job.id}")
 
     except Exception as e:
         logger.error(f"Error in check_follow_ups: {e}", exc_info=True)
@@ -201,7 +206,8 @@ def poll_inbox():
         mail.login(SMTP_EMAIL, SMTP_PASSWORD)
         mail.select("inbox")
 
-        status, messages = mail.search(None, "UNSEEN")
+        since_date = (datetime.utcnow() - timedelta(days=1)).strftime("%d-%b-%Y")
+        status, messages = mail.search(None, "SINCE", since_date)
         if status == "OK" and messages[0]:
             email_ids = messages[0].split()
             db = SessionLocal()
@@ -212,9 +218,9 @@ def poll_inbox():
                     if isinstance(response_part, tuple):
                         msg = email.message_from_bytes(response_part[1])
 
-                        sender = msg.get("From", "")
-                        if "<" in sender:
-                            sender = sender.split("<")[1].split(">")[0].strip()
+                        sender = parseaddr(msg.get("From", ""))[1].strip().lower()
+                        if not sender or sender == (SMTP_EMAIL or "").lower():
+                            continue
 
                         body = ""
                         if msg.is_multipart():
@@ -235,33 +241,50 @@ def poll_inbox():
                         preview = body.strip()[:200]
 
                         lead = db.query(Lead).join(Lead.tracking).filter(
-                            Lead.email.ilike(f"%{sender}%"),
+                            Lead.email.ilike(sender),
                             LeadTracking.lead_status == "NURTURING",
-                            Lead.assigned_to == None
-                        ).first()
+                            Lead.completed == False
+                        ).order_by(Lead.id.desc()).first()
+
+                        if not lead:
+                            lead = db.query(Lead).join(Lead.tracking).filter(
+                                Lead.email.ilike(sender),
+                                LeadTracking.lead_status.in_(["NURTURING", "CLAIMED", "COMPLETED"])
+                            ).order_by(Lead.id.desc()).first()
 
                         if lead:
                             logger.info(f"Reply detected from lead {lead.id}: {sender}")
+                            existing_auto_reply = db.query(EmailJob).filter(
+                                EmailJob.lead_id == lead.id,
+                                EmailJob.email_type == "AUTO_REPLY",
+                            ).first()
                             lead.tracking.lead_status = "ENGAGED"
+                            lead.lead_status = "ENGAGED"
+                            lead.completed = False
+                            lead.completed_at = None
                             lead.tracking.follow_up_stopped = True
                             lead.tracking.last_customer_reply = preview
                             lead.tracking.last_reply_at = datetime.utcnow()
                             db.commit()
 
                             # Queue auto-reply
+                            if existing_auto_reply:
+                                logger.info(f"Auto-reply already exists for lead {lead.id}; skipping duplicate.")
+                                continue
+
                             try:
-                                auto_reply = generate_auto_reply_sync(preview)
+                                auto_reply = get_auto_reply_fallback(lead.business_type)
                                 email_job = EmailJob(
                                     lead_id=lead.id,
                                     email_type="AUTO_REPLY",
                                     recipient_email=lead.email,
-                                    subject="Re: Your Solar Inquiry",
+                                    subject="Re: Your Inquiry",
                                     body=auto_reply
                                 )
                                 db.add(email_job)
                                 db.commit()
                                 logger.info(f"Queued auto-reply for lead {lead.id}")
-                                send_email_task.delay(email_job.id)
+                                dispatch_task(send_email_task, email_job.id, logger=logger, description=f"Auto-reply email job {email_job.id}")
                             except Exception as e:
                                 logger.error(f"Error queueing auto-reply for lead {lead.id}: {e}")
 

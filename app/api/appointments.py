@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 import os
 import string
 import random
@@ -10,6 +10,8 @@ from app.models.lead import Lead, LeadTracking, Appointment, AppointmentSlot, Em
 from app.schemas.appointment import AppointmentSlotResponse, AppointmentBookRequest
 from app.utils.logger import logger
 from app.tasks import send_email_task
+from app.services.business_service import get_booking_label
+from app.services.task_dispatcher import dispatch_task
 
 router = APIRouter(prefix="/api/appointments", tags=["appointments"])
 
@@ -17,8 +19,22 @@ def generate_secure_token(length=10):
     letters_and_digits = string.ascii_letters + string.digits
     return ''.join(random.choice(letters_and_digits) for i in range(length))
 
+
+def get_base_url(request: Request) -> str:
+    configured_base_url = (os.getenv("BASE_URL") or "").rstrip("/")
+    if configured_base_url:
+        return configured_base_url
+    return str(request.base_url).rstrip("/")
+
+
+def lead_matches_session(lead: Lead, demo_session_id: Optional[str]) -> bool:
+    if not demo_session_id:
+        return True
+    return bool(lead.extra_fields and lead.extra_fields.get("demo_session_id") == demo_session_id)
+
+
 @router.post("/{lead_id}/send-link")
-def send_booking_link(lead_id: int, db: Session = Depends(get_db)):
+def send_booking_link(lead_id: int, request: Request, db: Session = Depends(get_db)):
     """Generate a secure booking link and email it to the customer."""
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
@@ -35,6 +51,9 @@ def send_booking_link(lead_id: int, db: Session = Depends(get_db)):
 
     # Check if a pending appointment already exists
     appointment = db.query(Appointment).filter(Appointment.lead_id == lead.id).first()
+    if appointment and appointment.status in ["BOOKED", "COMPLETED"]:
+        raise HTTPException(status_code=400, detail="This customer has already booked an appointment.")
+
     if not appointment:
         token = generate_secure_token()
         appointment = Appointment(
@@ -49,21 +68,23 @@ def send_booking_link(lead_id: int, db: Session = Depends(get_db)):
         token = appointment.booking_token
 
     # Queue booking email
-    base_url = os.getenv("PUBLIC_BASE_URL", "http://localhost:8000")
+    base_url = get_base_url(request)
     booking_url = f"{base_url}/static/book.html?token={token}"
-    email_body = f"Hi {lead.full_name},\n\nPlease select a convenient time for your free solar site visit by clicking the link below:\n\n{booking_url}\n\nBest,\nYour Solar Team"
+    booking_label = get_booking_label(lead.business_type)
+    email_body = f"Hi {lead.full_name},\n\nPlease select a convenient time by clicking the link below:\n\n{booking_url}\n\nBest,\nThe Team"
     
     email_job = EmailJob(
         lead_id=lead.id,
         email_type="BOOKING_LINK",
         recipient_email=lead.email,
-        subject="Book Your Free Solar Site Visit",
+        subject=booking_label,
         body=email_body
     )
     db.add(email_job)
+    lead.appointment_status = "LINK_SENT"
     db.commit()
     
-    send_email_task.delay(email_job.id)
+    dispatch_task(send_email_task, email_job.id, logger=logger, description=f"Booking email job {email_job.id}")
     logger.info(f"Booking link generated and queued for Lead {lead.id}. Token: {token}")
 
     return {"success": True, "message": "Booking link sent to customer"}
@@ -95,18 +116,21 @@ def book_appointment(request: AppointmentBookRequest, db: Session = Depends(get_
         logger.warning(f"Double booking prevented for slot {slot.id} (Lead {appointment.lead_id})")
         raise HTTPException(status_code=400, detail="This time slot is no longer available. Please select another.")
 
+    lead = db.query(Lead).filter(Lead.id == appointment.lead_id).first()
+    tracking = db.query(LeadTracking).filter(LeadTracking.lead_id == appointment.lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Associated lead not found")
+
     # Update slot and appointment
     slot.is_booked = True
     appointment.appointment_slot_id = slot.id
     appointment.confirmed_address = request.confirmed_address
     appointment.status = "BOOKED"
     
-    # Update lead status
-    lead = db.query(Lead).filter(Lead.id == appointment.lead_id).first()
-    tracking = db.query(LeadTracking).filter(LeadTracking.lead_id == appointment.lead_id).first()
-    
     if tracking:
         tracking.lead_status = "APPOINTMENT_BOOKED"
+    lead.lead_status = "APPOINTMENT_BOOKED"
+    lead.appointment_status = "BOOKED"
         
     db.commit()
     logger.info(f"Slot {slot.id} reserved for Lead {lead.id}. Booking completed.")
@@ -117,8 +141,8 @@ def book_appointment(request: AppointmentBookRequest, db: Session = Depends(get_
         lead_id=lead.id,
         email_type="BOOKING_CONFIRMATION",
         recipient_email=lead.email,
-        subject="Solar Site Visit Confirmed",
-        body=f"Hi {lead.full_name},\n\nYour solar site visit is confirmed for {slot.slot_datetime.strftime('%B %d, %Y at %I:%M %p')} at {request.confirmed_address}.\n\nSee you soon!"
+        subject=f"{get_booking_label(lead.business_type)} Confirmed",
+        body=f"Hi {lead.full_name},\n\nYour appointment is confirmed for {slot.slot_datetime.strftime('%B %d, %Y at %I:%M %p')} at {request.confirmed_address}.\n\nSee you soon!"
     )
     db.add(customer_email)
     
@@ -132,14 +156,14 @@ def book_appointment(request: AppointmentBookRequest, db: Session = Depends(get_
         email_type="SALES_NOTIFICATION",
         recipient_email=rep_email,
         subject=f"New Appointment Booked: {lead.full_name}",
-        body=f"Lead {lead.full_name} has booked a site visit for {slot.slot_datetime.strftime('%B %d, %Y at %I:%M %p')}.\nAddress: {request.confirmed_address}"
+        body=f"Lead {lead.full_name} has booked an appointment for {slot.slot_datetime.strftime('%B %d, %Y at %I:%M %p')}.\nAddress: {request.confirmed_address}"
     )
     db.add(rep_notification)
     
     db.commit()
     
-    send_email_task.delay(customer_email.id)
-    send_email_task.delay(rep_notification.id)
+    dispatch_task(send_email_task, customer_email.id, logger=logger, description=f"Booking confirmation job {customer_email.id}")
+    dispatch_task(send_email_task, rep_notification.id, logger=logger, description=f"Sales notification job {rep_notification.id}")
 
     return {"success": True, "message": "Appointment booked successfully"}
 
@@ -158,16 +182,19 @@ def get_booking_confirmation(token: str, db: Session = Depends(get_db)):
     }
 
 @router.get("/booked")
-def get_booked_appointments(db: Session = Depends(get_db)):
+def get_booked_appointments(demo_session_id: Optional[str] = None, db: Session = Depends(get_db)):
     appointments = db.query(Appointment).filter(Appointment.status == "BOOKED").all()
     results = []
     for appt in appointments:
         if not appt.slot or not appt.lead:
             continue
+        if not lead_matches_session(appt.lead, demo_session_id):
+            continue
         results.append({
             "id": appt.id,
             "lead_id": appt.lead.id,
             "customer_name": appt.lead.full_name,
+            "business_type": appt.lead.business_type,
             "phone_number": appt.lead.phone_number,
             "email": appt.lead.email,
             "confirmed_address": appt.confirmed_address,
@@ -200,6 +227,8 @@ def complete_appointment(appointment_id: int, request_data: dict, db: Session = 
     
     lead.completed = True
     lead.completed_at = datetime.utcnow()
+    lead.lead_status = "COMPLETED"
+    lead.appointment_status = "COMPLETED"
     tracking = db.query(LeadTracking).filter(LeadTracking.lead_id == lead.id).first()
     if tracking:
         tracking.lead_status = "COMPLETED"
@@ -208,11 +237,18 @@ def complete_appointment(appointment_id: int, request_data: dict, db: Session = 
     return {"success": True}
 
 @router.get("/stats")
-def get_sales_stats(db: Session = Depends(get_db)):
-    completed_appointments = db.query(Appointment).filter(Appointment.status == "COMPLETED").all()
+def get_sales_stats(demo_session_id: Optional[str] = None, db: Session = Depends(get_db)):
+    completed_appointments = db.query(Appointment).join(Appointment.lead).filter(
+        Appointment.status.in_(["BOOKED", "COMPLETED"])
+    ).all()
     stats = {}
     for appt in completed_appointments:
-        rep = appt.completed_by or "Unknown"
-        stats[rep] = stats.get(rep, 0) + 1
-        
-    return [{"sales_rep": rep, "completed_visits": count} for rep, count in stats.items()]
+        if not appt.lead or not lead_matches_session(appt.lead, demo_session_id):
+            continue
+        rep = appt.lead.assigned_to or appt.completed_by or "Unassigned"
+        mobile = appt.lead.claimed_by_mobile or ""
+        if rep not in stats:
+            stats[rep] = {"sales_rep": rep, "mobile": mobile, "completed_sales": 0}
+        stats[rep]["completed_sales"] += 1
+
+    return sorted(stats.values(), key=lambda item: item["completed_sales"], reverse=True)

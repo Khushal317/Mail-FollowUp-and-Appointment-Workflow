@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo Login</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f5f7fb;
+            color: #172033;
+        }
+        .panel {
+            width: 100%;
+            max-width: 520px;
+            background: #fff;
+            border: 1px solid #dce3ee;
+            border-radius: 8px;
+            padding: 28px;
+            box-shadow: 0 14px 34px rgba(33, 45, 70, 0.07);
+        }
+        h1 { margin: 0 0 8px; font-size: 30px; letter-spacing: 0; }
+        p { color: #66758a; line-height: 1.55; margin: 0 0 18px; }
+        .notice {
+            background: #fff8df;
+            border: 1px solid #f1d27a;
+            border-radius: 8px;
+            color: #4a3b17;
+            padding: 12px;
+            margin-bottom: 18px;
+            line-height: 1.45;
+        }
+        label {
+            display: block;
+            font-weight: 800;
+            margin-bottom: 7px;
+            font-size: 14px;
+        }
+        input {
+            width: 100%;
+            border: 1px solid #cfd8e5;
+            border-radius: 8px;
+            padding: 12px;
+            font: inherit;
+            margin-bottom: 14px;
+        }
+        input:focus {
+            outline: 3px solid #dbe8ff;
+            border-color: #2563eb;
+        }
+        button {
+            width: 100%;
+            min-height: 46px;
+            border: 0;
+            border-radius: 8px;
+            padding: 0 16px;
+            background: #2563eb;
+            color: #fff;
+            font-weight: 900;
+            cursor: pointer;
+            margin-top: 4px;
+        }
+        .small {
+            font-size: 13px;
+            margin-top: 14px;
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <main class="panel">
+        <h1>Login To Test The Demo</h1>
+        <p>This keeps your demo leads separate from other people testing the same link.</p>
+        <div class="notice">This is only a demo login. No password is needed. If you log out or do not open the demo for 2 days, your demo session will reset and you will start fresh.</div>
+
+        <form id="login-form">
+            <label for="name">Your Name</label>
+            <input id="name" type="text" autocomplete="name" required>
+
+            <label for="email">Email</label>
+            <input id="email" type="email" autocomplete="email" required>
+
+            <button type="submit">Start Demo</button>
+        </form>
+
+        <p class="small">Use the same email if you want to receive demo replies from aiinfluencergo@gmail.com.</p>
+    </main>
+
+    <script src="/static/demo-auth.js"></script>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const next = params.get("next") || "/";
+
+        document.getElementById("login-form").addEventListener("submit", (event) => {
+            event.preventDefault();
+            login();
+        });
+
+        function login() {
+            const name = document.getElementById("name").value.trim();
+            const email = document.getElementById("email").value.trim();
+            if (!name || !email) {
+                alert("Please enter your name and email.");
+                return;
+            }
+            window.demoAuth.saveLogin(name, email);
+            window.location.href = next;
+        }
+    </script>
+    <script src="/static/contact-banner.js"></script>
+</body>
+</html>

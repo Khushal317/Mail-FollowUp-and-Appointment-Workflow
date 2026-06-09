@@ -10,7 +10,6 @@ class AppointmentSlotResponse(AppointmentSlotBase):
     id: int
     
     class Config:
-        orm_mode = True
         from_attributes = True
 
 class AppointmentBookRequest(BaseModel):
@@ -28,5 +27,4 @@ class AppointmentResponse(BaseModel):
     created_at: datetime
     
     class Config:
-        orm_mode = True
         from_attributes = True

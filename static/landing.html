@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Never Lose A Lead Again</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #172033;
+            background: #f5f7fb;
+        }
+        main {
+            min-height: 100vh;
+            display: grid;
+            align-items: center;
+            padding: 32px 18px;
+        }
+        .top-actions {
+            position: fixed;
+            top: 70px;
+            right: 18px;
+            z-index: 10;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background: #ffffff;
+            border: 1px solid #dce3ee;
+            border-radius: 8px;
+            padding: 8px 10px;
+            box-shadow: 0 10px 24px rgba(33, 45, 70, 0.08);
+        }
+        .top-actions span {
+            color: #66758a;
+            font-size: 14px;
+        }
+        .top-actions a,
+        .top-actions button {
+            border: 0;
+            background: transparent;
+            color: #174ebd;
+            font: inherit;
+            font-weight: 800;
+            text-decoration: none;
+            cursor: pointer;
+            padding: 0;
+        }
+        .wrap {
+            width: 100%;
+            max-width: 960px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+            gap: 36px;
+            align-items: center;
+        }
+        h1 {
+            font-size: clamp(40px, 7vw, 76px);
+            line-height: 0.98;
+            margin: 0 0 18px;
+            letter-spacing: 0;
+        }
+        .subheadline {
+            font-size: 20px;
+            line-height: 1.5;
+            color: #526071;
+            margin: 0 0 18px;
+            max-width: 660px;
+        }
+        .explain {
+            color: #697789;
+            margin: 0 0 28px;
+            line-height: 1.6;
+        }
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 48px;
+            padding: 0 22px;
+            border-radius: 8px;
+            background: #2563eb;
+            color: #fff;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .button.secondary {
+            background: #eef4ff;
+            color: #174ebd;
+            margin-left: 10px;
+        }
+        .notice {
+            max-width: 660px;
+            background: #ffffff;
+            border: 1px solid #dce3ee;
+            border-radius: 8px;
+            color: #526071;
+            line-height: 1.5;
+            padding: 12px 14px;
+            margin: 0 0 22px;
+        }
+        .demo-panel {
+            background: #ffffff;
+            border: 1px solid #dce3ee;
+            border-radius: 8px;
+            padding: 22px;
+            box-shadow: 0 18px 45px rgba(33, 45, 70, 0.08);
+        }
+        .step {
+            display: grid;
+            grid-template-columns: 32px 1fr;
+            gap: 12px;
+            align-items: start;
+            padding: 14px 0;
+            border-bottom: 1px solid #e7edf5;
+        }
+        .step:last-child { border-bottom: 0; }
+        .num {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #e8f0ff;
+            color: #174ebd;
+            font-weight: 700;
+        }
+        .step strong { display: block; margin-bottom: 4px; }
+        .step span { color: #66758a; line-height: 1.45; }
+        @media (max-width: 760px) {
+            main { align-items: start; }
+            .top-actions {
+                position: static;
+                margin: 66px 18px 0;
+                justify-content: flex-end;
+            }
+            .wrap { grid-template-columns: 1fr; }
+            h1 { font-size: 42px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-actions" id="top-actions">
+        <a href="/login?next=/">Login</a>
+    </div>
+    <main>
+        <div class="wrap">
+            <section>
+                <h1>Never Lose A Lead Again</h1>
+                <p class="subheadline">Automatically reply to new leads, follow up with them, and help your team book more appointments.</p>
+                <p class="explain">Choose a demo business type, submit a lead, and watch the automation start. This is only a demo, and the automation can be adjusted for your exact business needs.</p>
+                <p class="notice">Demo emails are sent from aiinfluencergo@gmail.com. Use a real email address in the form if you want to receive and test the replies.</p>
+                <p class="notice">First fill the demo lead form, then open the lead queue to see how your team can track the lead.</p>
+                <a class="button" id="try-demo" href="/login?next=/">Fill Demo Lead Form</a>
+                <a class="button secondary" href="/static/index.html">Open Lead Queue</a>
+            </section>
+            <aside class="demo-panel" aria-label="Demo workflow">
+                <div class="step">
+                    <span class="num">1</span>
+                    <div><strong>Submit a lead</strong><span>Pick a business type and fill out a matching customer form.</span></div>
+                </div>
+                <div class="step">
+                    <span class="num">2</span>
+                    <div><strong>Email starts</strong><span>The system queues an instant reply and schedules follow-ups.</span></div>
+                </div>
+                <div class="step">
+                    <span class="num">3</span>
+                    <div><strong>Team follows up</strong><span>The lead appears in the queue so your team can claim and book it.</span></div>
+                </div>
+            </aside>
+        </div>
+    </main>
+    <script src="/static/demo-auth.js"></script>
+    <script>
+        const login = window.demoAuth.getLogin();
+        const topActions = document.getElementById("top-actions");
+        const tryDemo = document.getElementById("try-demo");
+
+        if (login) {
+            topActions.innerHTML = `<span>Logged in as ${escapeHtml(login.name || login.email)}</span><button type="button" onclick="logoutHome()">Logout</button>`;
+            tryDemo.href = "/demo";
+        }
+
+        function logoutHome() {
+            window.demoAuth.logout();
+            window.location.href = "/";
+        }
+
+        function escapeHtml(value) {
+            return String(value || "").replace(/[&<>"']/g, char => ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#039;"
+            }[char]));
+        }
+    </script>
+    <script src="/static/contact-banner.js"></script>
+</body>
+</html>

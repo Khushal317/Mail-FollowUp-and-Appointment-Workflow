@@ -1,31 +1,20 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional
+from pydantic import BaseModel, EmailStr, Field
+from typing import Any, Dict, Optional
 from datetime import datetime
 
 class LeadCreate(BaseModel):
     full_name: str
     phone_number: str
     email: EmailStr
-    city: str
-    property_type: str
-    monthly_electricity_bill: str
-    roof_type: str
-    rooftop_size: str
-    installation_timeline: str
+    business_type: str = Field(default="SOLAR", pattern="^(SOLAR|HOME_SERVICES|OTHER_BUSINESS)$")
+    city: Optional[str] = None
+    property_type: Optional[str] = None
+    monthly_electricity_bill: Optional[str] = None
+    roof_type: Optional[str] = None
+    rooftop_size: Optional[str] = None
+    installation_timeline: Optional[str] = None
+    extra_fields: Dict[str, Any] = Field(default_factory=dict)
 
-class LeadResponse(BaseModel):
-    id: int
-    full_name: str
-    phone_number: str
-    email: EmailStr
-    city: str
-    property_type: str
-    monthly_electricity_bill: str
-    roof_type: str
-    rooftop_size: str
-    installation_timeline: str
-    ai_generated_email: Optional[str] = None
-    
 class LeadTrackingResponse(BaseModel):
     id: int
     lead_status: str
@@ -42,17 +31,21 @@ class LeadResponse(BaseModel):
     full_name: str
     phone_number: str
     email: EmailStr
-    city: str
-    property_type: str
-    monthly_electricity_bill: str
-    roof_type: str
-    rooftop_size: str
-    installation_timeline: str
+    business_type: str
+    city: Optional[str] = None
+    property_type: Optional[str] = None
+    monthly_electricity_bill: Optional[str] = None
+    roof_type: Optional[str] = None
+    rooftop_size: Optional[str] = None
+    installation_timeline: Optional[str] = None
+    extra_fields: Optional[Dict[str, Any]] = None
     ai_generated_email: Optional[str] = None
-    
+
     # Original Scoring and Queue fields that stay on Lead
     lead_category: str
     lead_score: int
+    lead_status: str
+    appointment_status: str
     assigned_to: Optional[str] = None
     claimed_by_mobile: Optional[str] = None
     claimed_at: Optional[datetime] = None
