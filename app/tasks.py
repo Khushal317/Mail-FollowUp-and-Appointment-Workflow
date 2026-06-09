@@ -181,7 +181,7 @@ def check_follow_ups():
                 fresh_tracking.follow_up_stage = new_stage
                 db.commit()
 
-                dispatch_task(send_email_task, email_job.id, logger=logger, description=f"Follow-up email job {email_job.id}")
+                logger.info(f"Follow-up email job {email_job.id} queued for email processor.")
 
     except Exception as e:
         logger.error(f"Error in check_follow_ups: {e}", exc_info=True)
